@@ -4,7 +4,7 @@
   <name>grp_control_msg</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="lego8421@gmail.com">nuc</maintainer>
+  <maintainer email="inhwan94@korea.ac.kr">Inhwan Yoon</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

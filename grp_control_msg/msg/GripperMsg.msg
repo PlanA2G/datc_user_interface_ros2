@@ -1,14 +1,13 @@
-int16 angle
-int16 current
-int16 velocity
+int16 motor_position
+int16 motor_current
+int16 motor_velocity
+uint16 finger_position
 
-bool is_motor_enable
-bool is_grp_init_ongoing
-bool is_pos_ongoing
-bool is_vel_ongoing
-bool is_tor_ongoing
-bool is_grp_opening
-bool is_grp_closing
-bool grp_direction
-bool is_object_grasp
-bool is_fault_occured
+bool motor_enabled
+bool gripper_initialized
+bool position_ctrl_mode
+bool velocity_ctrl_mode
+bool current_ctrl_mode
+bool grp_opened
+bool grp_closed
+bool motor_fault

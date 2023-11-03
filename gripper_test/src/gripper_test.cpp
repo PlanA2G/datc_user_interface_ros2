@@ -6,6 +6,7 @@
 #define STOP_BIT      1
 #define PARITY_MODE   'N'
 #define DURATION_MIN  10
+#define DURATION_MAX  100000
 #define LOOP_FREQ     50
 
 // MODBUS Start Address for Programmer  1번째 주소 = 0x0001 //
@@ -126,99 +127,93 @@ int GripperNode::slaveChange(uint slave_address) {
 
 bool GripperNode::driverEnableCallback(const std::shared_ptr<grp_control_msg::srv::DriverEnable::Request> req,
                                        std::shared_ptr<grp_control_msg::srv::DriverEnable::Response> res) {
-    return res->successed = (req->enable ? driverEnable() : driverDisable());
+    return res->successed = (req->enable ? motorEnable() : motorDisable());
 }
 
 bool GripperNode::posCmdCallback(const std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Request> req,
                                  std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Response> res) {
-    PosCtrlParam pos_ctrl_param;
-
-    pos_ctrl_param.pos      = req->position;
-    pos_ctrl_param.vel      = req->velocity;
-    pos_ctrl_param.duration = req->duration;
-
-    return res->successed = posCtrl(pos_ctrl_param);
+    return res->successed = motorPosCtrl(req->position, req->duration);
 }
 
 bool GripperNode::velCmdCallback(const std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Request> req,
                                  std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Response> res) {
-    VelCtrlParam vel_ctrl_param;
-
-    vel_ctrl_param.vel      = req->velocity;
-    vel_ctrl_param.duration = req->duration;
-
-    return res->successed = velCtrl(vel_ctrl_param);
+    return res->successed = motorVelCtrl(req->velocity, req->duration);
 }
 
 bool GripperNode::curCmdCallback(const std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Request> req,
                                  std::shared_ptr<grp_control_msg::srv::PosVelCurCtrl::Response> res) {
-    CurCtrlParam cur_ctrl_param;
-
-    cur_ctrl_param.cur      = req->current;
-    cur_ctrl_param.duration = req->duration;
-
-    return res->successed = curCtrl(cur_ctrl_param);
+    return res->successed = motorCurCtrl(req->current, req->duration);
 }
 
 bool GripperNode::driverCommandCallback(const std::shared_ptr<grp_control_msg::srv::GripperCommand::Request> req,
                                         std::shared_ptr<grp_control_msg::srv::GripperCommand::Response> res) {
-    switch (req->command) {
-        case MB_GRP_INIT:
+    switch ((GRP_COMMAND) req->command) {
+        case GRP_COMMAND::MOTOR_ENABLE:
+            motorEnable();
+            break;
+
+        case GRP_COMMAND::MOTOR_STOP:
+            motorStop(0);
+            break;
+
+        case GRP_COMMAND::MOTOR_DISABLE:
+            motorDisable();
+            break;
+
+        case GRP_COMMAND::MOTOR_POSITION_CONTROL:
+            motorPosCtrl(req->value_1, req->value_2);
+            break;
+
+        case GRP_COMMAND::MOTOR_VELOCITY_CONTROL:
+            motorVelCtrl(req->value_1, req->value_2);
+            break;
+
+        case GRP_COMMAND::MOTOR_CURRENT_CONTROL:
+            motorCurCtrl(req->value_1, req->value_2);
+            break;
+
+        case GRP_COMMAND::CHANGE_MODBUS_ADDRESS:
+
+            break;
+
+        case GRP_COMMAND::GRIPPER_INITIALIZE:
             grpInit();
             break;
 
-        case MB_GRP_OPEN:
+        case GRP_COMMAND::GRIPPER_OPEN:
             grpOpen();
             break;
 
-        case MB_GRP_CLOSE:
+        case GRP_COMMAND::GRIPPER_CLOSE:
             grpClose();
             break;
 
-        case MB_GRP_POS_CTRL:
-            grpPosCtrl(req->value);
+        case GRP_COMMAND::SET_FINGER_POSITION:
+            setFingerPos(req->value_1);
             break;
 
-        case MB_VAC_ON:
+        case GRP_COMMAND::VACUUM_GRIPPER_ON:
             vacuumGrpOn();
             break;
 
-        case MB_VAC_OFF:
+        case GRP_COMMAND::VACUUM_GRIPPER_OFF:
             vacuumGrpOff();
             break;
+
+        case GRP_COMMAND::SET_MOTOR_TORQUE:
+
+            break;
+
+        case GRP_COMMAND::SET_MOTOR_SPEED:
+
+            break;
+
+        default:
+            ROS_LOG_ERROR("");
+
     }
 
     return res->successed = true;
-}
-
-bool GripperNode::driverEnable() {
-    if (!modbus_connect_state_) {
-        ROS_LOG_ERROR("Modbus is not initiated");
-        return false;
-    }
-
-    std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_ENABLE;
-    MB_CMD_2 = MB_2_NONE;
-
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-
-    return sendOrder("[Enable]", buf_register);
-}
-
-bool GripperNode::driverDisable() {
-    if (!modbus_connect_state_) {
-        ROS_LOG_ERROR("Modbus is not initiated");
-        return false;
-    }
-
-    std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_DISABLE;
-    MB_CMD_2 = MB_2_NONE;
-
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-
-    return sendOrder("[Disable]", buf_register);
 }
 
 void GripperNode::setReadMode(bool change_to_read_mode) {
@@ -226,109 +221,130 @@ void GripperNode::setReadMode(bool change_to_read_mode) {
     read_mode_ = change_to_read_mode;
 }
 
-bool GripperNode::setParam(OtherParam other_param) {
+bool GripperNode::motorEnable() {
+    if (!modbus_connect_state_) {
+        ROS_LOG_ERROR("Modbus communication is not enabled.");
+        return false;
+    }
+
+    std::vector<uint16_t> buf_register(1);
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_ENABLE;
+
+    return sendOrder("[Motor Enable]", buf_register);
+}
+
+bool GripperNode::motorDisable() {
+    if (!modbus_connect_state_) {
+        ROS_LOG_ERROR("Modbus communication is not enabled.");
+        return false;
+    }
+
+    std::vector<uint16_t> buf_register(1);
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_DISABLE;
+
+    return sendOrder("[Motor Disable]", buf_register);
+}
+
+// bool GripperNode::setParam(OtherParam other_param) {
+//     setReadMode(false);
+
+//     std::string error_prefix = "[Setting parameter]";
+
+//     std::vector<uint16_t> buf_register(3);
+//     MB_CMD_1 = MB_SET_MAX_VAL;
+//     MB_CMD_2 = MB_2_NONE;
+
+//     buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+//     buf_register[1] = other_param.acc_max;
+//     buf_register[2] = other_param.vel_max;
+
+//     return sendOrder(error_prefix, buf_register);
+// }
+
+bool GripperNode::motorPosCtrl(int q_target, uint duration) {
     setReadMode(false);
 
-    std::string error_prefix = "[Setting parameter]";
+    std::unique_lock<std::mutex> lg(mutex_com_);
+    std::string error_prefix = "[Motor Position Control]";
+
+    if (duration < DURATION_MIN) {
+        ROS_LOG_INFO("%s Duration is too short ( < %dms)", error_prefix.c_str(), DURATION_MIN);
+        return false;
+    } else if (duration > DURATION_MAX) {
+        ROS_LOG_INFO("%s Duration is too long ( > %dms)", error_prefix.c_str(), DURATION_MAX);
+        return false;
+    }
 
     std::vector<uint16_t> buf_register(3);
-    MB_CMD_1 = MB_SET_MAX_VAL;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-    buf_register[1] = other_param.acc_max;
-    buf_register[2] = other_param.vel_max;
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_POSITION_CONTROL;
+    buf_register[1] = (uint16_t) q_target;
+    buf_register[2] = (uint16_t) duration;
 
     return sendOrder(error_prefix, buf_register);
 }
 
-bool GripperNode::posCtrl(PosCtrlParam pos_ctrl_param) {
+bool GripperNode::motorVelCtrl(int qd_target, uint duration) {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
+    std::string error_prefix = "[Motor Velocity Control]";
 
-    std::string error_prefix = "[Position Ctrl]";
-
-    if (pos_ctrl_param.vel == 0 && pos_ctrl_param.duration < DURATION_MIN) {
-        ROS_LOG_INFO("%s Duration is too low ( < %dms)", error_prefix.c_str(), DURATION_MIN);
+    if (duration < DURATION_MIN) {
+        ROS_LOG_INFO("%s Duration is too short ( < %dms)", error_prefix.c_str(), DURATION_MIN);
+        return false;
+    } else if (duration > DURATION_MAX) {
+        ROS_LOG_INFO("%s Duration is too long ( > %dms)", error_prefix.c_str(), DURATION_MAX);
         return false;
     }
 
     std::vector<uint16_t> buf_register(3);
-    MB_CMD_1 = MB_POS_CTRL;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-    buf_register[1] = (uint16_t)(pos_ctrl_param.pos);
-    // buf_register[2] = pos_ctrl_param.duration != 0 ? pos_ctrl_param.duration : abs(pos_ctrl_param.pos) / abs(pos_ctrl_param.vel) * 1000;
-    buf_register[2] = (uint16_t)(pos_ctrl_param.duration);
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_VELOCITY_CONTROL;
+    buf_register[1] = (uint16_t) qd_target; // RPM
+    buf_register[2] = (uint16_t) duration;  // ms
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
-bool GripperNode::velCtrl(VelCtrlParam vel_ctrl_param) {
+bool GripperNode::motorCurCtrl(int cur_target, uint duration) {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
+    std::string error_prefix = "[Motor Current Control]";
 
-    std::string error_prefix = "[Velocity Ctrl]";
-
-    if (vel_ctrl_param.duration < DURATION_MIN) {
-        ROS_LOG_INFO("%s Duration is too low ( < %dms)", error_prefix.c_str(), DURATION_MIN);
+    if (duration < DURATION_MIN) {
+        ROS_LOG_INFO("%s Duration is too short ( < %dms)", error_prefix.c_str(), DURATION_MIN);
+        return false;
+    } else if (duration > DURATION_MAX) {
+        ROS_LOG_INFO("%s Duration is too long ( > %dms)", error_prefix.c_str(), DURATION_MAX);
         return false;
     }
 
     std::vector<uint16_t> buf_register(3);
-    MB_CMD_1 = MB_VEL_CTRL;
-    MB_CMD_2 = MB_2_NONE;
-
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-    buf_register[1] = (uint16_t)vel_ctrl_param.vel; // RPM
-    buf_register[2] = vel_ctrl_param.duration;      // ms
-
-    return sendOrder_noMutex(error_prefix, buf_register);
-}
-
-bool GripperNode::curCtrl(CurCtrlParam cur_ctrl_param) {
-    setReadMode(false);
-
-    std::unique_lock<std::mutex> lg(mutex_com_);
-
-    std::string error_prefix = "[Current Ctrl]";
-
-    if (cur_ctrl_param.duration < DURATION_MIN) {
-        ROS_LOG_INFO("%s Duration is too low ( < %dms)", error_prefix.c_str(), DURATION_MIN);
-        return false;
-    }
-
-    std::vector<uint16_t> buf_register(3);
-    MB_CMD_1 = MB_VEL_CTRL;
-    MB_CMD_2 = MB_2_NONE;
 
     // Current(Amp)  = [Current(s16A) * Vdd micro] / [65536 * Rshunt * Aop]
     // Current(s16A) = [Current(Amp)  / Vdd micro] * [65536 * Rshunt * Aop]
     // Vdd : 3.3V
     // Aop : 4.375
     // Rshunt : 0.1ohm
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-    buf_register[1] = (uint16_t)cur_ctrl_param.cur;
-    buf_register[2] = cur_ctrl_param.duration;
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_CURRENT_CONTROL;
+    buf_register[1] = (uint16_t) cur_target;
+    buf_register[2] = (uint16_t) duration;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::grpInit() {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
-    std::string error_prefix = "[Gripper Init]";
+    std::string error_prefix = "[Gripper Initialize]";
     std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_GRP_INIT;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::GRIPPER_INITIALIZE;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::grpOpen() {
@@ -337,12 +353,10 @@ bool GripperNode::grpOpen() {
     std::unique_lock<std::mutex> lg(mutex_com_);
     std::string error_prefix = "[Gripper Open]";
     std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_GRP_OPEN;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::GRIPPER_OPEN;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::grpClose() {
@@ -351,99 +365,62 @@ bool GripperNode::grpClose() {
     std::unique_lock<std::mutex> lg(mutex_com_);
     std::string error_prefix = "[Gripper Close]";
     std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_GRP_CLOSE;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::GRIPPER_CLOSE;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::vacuumGrpOn() {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
-    std::string error_prefix = "[Vacuum On]";
+    std::string error_prefix = "[Vacuum Gripper On]";
     std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_VAC_ON;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::VACUUM_GRIPPER_ON;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::vacuumGrpOff() {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
-    std::string error_prefix = "[Vacuum Off]";
+    std::string error_prefix = "[Vacuum Gripper Off]";
     std::vector<uint16_t> buf_register(1);
-    MB_CMD_1 = MB_VAC_OFF;
-    MB_CMD_2 = MB_2_NONE;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::VACUUM_GRIPPER_OFF;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
+    return sendOrder(error_prefix, buf_register);
 }
 
-bool GripperNode::stopMotor(StopMotorParam stop_motor_param) {
+bool GripperNode::motorStop(uint16_t duration) {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
-    std::string error_prefix = "[Stop motor]";
+    std::string error_prefix = "[Motor Stop]";
     std::vector<uint16_t> buf_register(1);
 
-    MB_CMD_1 = MB_STOP_P;
-    MB_CMD_2 = MB_2_NONE;
+    buf_register[0] = (uint16_t) GRP_COMMAND::MOTOR_STOP;
 
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
-    //&stop_motor_param.duration
-
-    if (modbus_write_registers(ctx_, HOLDING_START_ADDRESS, 1, &buf_register[0]) == -1) {
-        fprintf(stderr, "%s Failed to modbus_write_register_%d : %s\n", error_prefix.c_str(), 2, modbus_strerror(errno));
-        return false;
-    }
-
-    setReadMode(true);
-
-    return true;
+    return sendOrder(error_prefix, buf_register);
 }
 
-bool GripperNode::grpPosCtrl(uint16_t Parameter) {
+bool GripperNode::setFingerPos(uint16_t Parameter) {
     setReadMode(false);
 
     std::unique_lock<std::mutex> lg(mutex_com_);
-    std::string error_prefix = "[Gripper PosCtrl]";
+    std::string error_prefix = "[Set Finger Position]";
     std::vector<uint16_t> buf_register(2);
 
-    MB_CMD_1 = MB_GRP_POS_CTRL;
-    MB_CMD_2 = MB_2_NONE;
-
-    buf_register[0] = MB_CMD_2 << 8 | MB_CMD_1;
+    buf_register[0] = (uint16_t) GRP_COMMAND::SET_FINGER_POSITION;
     buf_register[1] = Parameter;
 
-    return sendOrder_noMutex(error_prefix, buf_register);
-}
-
-bool GripperNode::sendOrder_noMutex(std::string error_prefix, std::vector<uint16_t> buf_register) {
-    printf("%s Command sent. \n", error_prefix.c_str());
-
-    uint16_t register_number = buf_register.size();
-
-    if (modbus_write_registers(ctx_, HOLDING_START_ADDRESS, register_number, &buf_register[0]) == -1) {
-        fprintf(stderr, "%s Failed to modbus_write_register_%d : %s\n", error_prefix.c_str(), HOLDING_START_ADDRESS, modbus_strerror(errno));
-        return false;
-    }
-
-    setReadMode(true);
-
-    return true;
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::sendOrder(std::string error_prefix, std::vector<uint16_t> buf_register) {
-    std::unique_lock<std::mutex> lg(mutex_com_);
-
     printf("%s Command sent. \n", error_prefix.c_str());
 
     uint16_t register_number = buf_register.size();
@@ -458,138 +435,78 @@ bool GripperNode::sendOrder(std::string error_prefix, std::vector<uint16_t> buf_
         return false;
     }
 
-    if (buf_register[0] == MB_ENABLE || buf_register[0] == MB_DISABLE) {
-        is_enable_ = buf_register[0] == MB_ENABLE ? true : false;
-        sleep(0.2);
-    }
-
     setReadMode(true);
-
     return true;
+}
+
+bool GripperNode::sendOrder_mutex(std::string error_prefix, std::vector<uint16_t> buf_register) {
+    std::unique_lock<std::mutex> lg(mutex_com_);
+    return sendOrder(error_prefix, buf_register);
 }
 
 bool GripperNode::checkValue() {
-     std::unique_lock<std::mutex> lg(mutex_com_);
+    static std::map<uint, std::vector<std::string>> status_info;
+
+    if (status_info.size() == 0) {
+        status_info.insert({0, {"false", "Motor Enable"}});
+        status_info.insert({1, {"false", "Gripper Initialize"}});
+        status_info.insert({2, {"false", "Motor Position Control"}});
+        status_info.insert({3, {"false", "Motor Velocity Control"}});
+        status_info.insert({4, {"false", "Motor Current Control"}});
+        status_info.insert({5, {"false", "Gripper Open"}});
+        status_info.insert({6, {"false", "Gripper Close"}});
+        status_info.insert({9, {"false", "Motor Fault"}});
+    }
+
+    std::unique_lock<std::mutex> lg(mutex_com_);
 
     // Read input register //
-    uint16_t input_reg_address = 10;
-    uint16_t input_reg_number  = 7;
-    uint16_t input_reg[10] = {0, };
+    uint16_t reg_address = 10;
+    uint16_t reg_num     = 8;
+    uint16_t reg[reg_num] = {0, };
 
-    if (modbus_read_registers(ctx_, input_reg_address, input_reg_number, input_reg) == -1) {
+    if (modbus_read_registers(ctx_, reg_address, reg_num, reg) == -1) {
         fprintf(stderr, "Failed to read input registers! : %s\n", modbus_strerror(errno));
     }
 
-    // MB_STATUS            = input_reg[0];
-    uint16_t mb_status       = input_reg[0];
-    uint16_t mb_position     = input_reg[1];
-    uint16_t mb_torque       = input_reg[2];
-    int16_t  mb_velocity     = input_reg[3];
-    uint16_t mb_faultNow     = input_reg[4];
-    uint16_t mb_faultOccured = input_reg[5];
-    int16_t mb_value_1 = (int16_t)input_reg[4];
+    uint16_t status          = reg[0];
+    int16_t  motor_position  = reg[1];
+    int16_t  motor_current   = reg[2];
+    int16_t  motor_velocity  = reg[3];
+    uint16_t finger_position = reg[4];
+    uint16_t bus_voltage     = reg[7];
 
-    //std::cout << mb_faultNow << "\t" << mb_faultOccured << std::endl;
+    status_str_.clear();
 
-    isMotorEnable     = (mb_status & (0x0001 <<  0)) != 0x0000; //0000 0000   0000 0001
-    isGrpInitOngoing  = (mb_status & (0x0001 <<  1)) != 0x0000; //0000 0000   0000 0010
-    isPosOngoing      = (mb_status & (0x0001 <<  2)) != 0x0000; //0000 0000   0000 0100
-    isVelOngoing      = (mb_status & (0x0001 <<  3)) != 0x0000; //0000 0000   0000 1000
-    isTorOngoing      = (mb_status & (0x0001 <<  4)) != 0x0000; //0000 0000   0001 0000
-    isGrpOpening      = (mb_status & (0x0001 <<  5)) != 0x0000; //0000 0000   0010 0000
-    isGrpClosing      = (mb_status & (0x0001 <<  6)) != 0x0000; //0000 0000   0100 0000
-    grpDirection      = (mb_status & (0x0001 <<  7)) != 0x0000; //0000 0000   1000 0000
-    isObjectGrasp     = (mb_status & (0x0001 <<  8)) != 0x0000; //0000 0001   0000 0000
-    isFaultOccured    = (mb_status & (0x0001 <<  9)) != 0x0000; //0000 0010   0000 0000
-
-    if (isMotorEnable) {
-        /* Motor Status */
-        if (isPosOngoing) {
-            MB_STATUS = "Motor Position Control";
-        } else if (isVelOngoing) {
-            MB_STATUS = "Motor Velocity Control";
-        } else if (isVelOngoing) {
-            MB_STATUS = "Motor Current Control";
-        } else {
-            MB_STATUS = "IDLE";
+    for (int i = 0; i < 16; i++) {
+        if (status_info.find(i) != status_info.end()) {
+            if (status & (0x01 << i)) {
+                status_info[i][0] = "true";
+                status_str_ = status_info[i][1];
+            }
         }
-        /* Gripper Status */
-        if (isGrpInitOngoing) {
-            MB_STATUS = "Gripper Initialize";
-        } else if (isObjectGrasp) {
-            MB_STATUS = "Object grasped";
-        } else if (isGrpOpening) {
-            MB_STATUS = "Gripper Open";
-        } else if (isGrpClosing) {
-            MB_STATUS = "Gripper Close";
-        }
-    } else {
-        MB_STATUS = "Motor Disabled";
     }
 
-    if (grpDirection) {
-        MB_GRP_DIR = "True";
-    } else {
-        MB_GRP_DIR = "False";
+    if (status_str_.size() == 0) {
+        status_str_ = "Motor Disabled";
     }
 
-    if (isFaultOccured) {
-        MB_STATUS = "Fault occured";
-    }
+    msg_.motor_position  = motor_position;
+    msg_.motor_velocity  = motor_velocity;
+    msg_.motor_current   = motor_current;
+    msg_.finger_position = finger_position;
 
-    static bool isMotorEnable_before    = isMotorEnable;
-    static bool isGrpInitOngoing_before = isGrpInitOngoing;
-    static bool isPosOngoing_before     = isPosOngoing;
-    static bool isVelOngoing_before     = isVelOngoing;
-    static bool isTorOngoing_before     = isTorOngoing;
-    static bool isGrpOpening_before     = isGrpOpening;
-    static bool isGrpClosing_before     = isGrpClosing;
-    static bool isObjectGrasp_before    = isObjectGrasp;
-    static bool isFaultOccured_before   = isFaultOccured;
-
-    auto printIfChanged = [] (bool input_boolean, bool &before_boolean, std::string str_on, std::string str_off) {
-        std::string retVal;
-
-        if (input_boolean != before_boolean) {
-            retVal = input_boolean ? str_on : str_off;
-            std::cout << retVal << std::endl;
-        }
-
-        before_boolean = input_boolean;
-        return retVal;
-    };
-
-    //MB_STATUS = printIfChanged(isMotorEnable,    isMotorEnable_before,    "[Motor][Enable]",                 "[Motor][Disable]");
-    // printIfChanged(isGrpInitOngoing, isGrpInitOngoing_before, "[Gripper][Init]",                 "[Gripper][Disable]");
-    // printIfChanged(isPosOngoing,     isPosOngoing_before,     "[Motor][Position OnGoing]",       "[Motor][Position Finished]");
-    // printIfChanged(isVelOngoing,     isVelOngoing_before,     "[Motor][Velocity Control Start]", "[Motor][Velocity Control End]");
-    // printIfChanged(isTorOngoing,     isTorOngoing_before,     "[Motor][Torque Control Start]",   "[Motor][Torque Control End]");
-    // printIfChanged(isGrpOpening,     isGrpOpening_before,     "[Gripper][Opening]",              "[Gripper][Opened]");
-    // printIfChanged(isGrpClosing,     isGrpClosing_before,     "[Gripper][Clsoing]",              "[Gripper][Closed]");
-    printIfChanged(isObjectGrasp,    isObjectGrasp_before,    "[Gripper][Grasping]",                "[Gripper][Grasp Release]");
-    //printIfChanged(isFaultOccured,   isFaultOccured_before,   "[Motor][Fault Now]",              "[Motor][Fault Occured]");
-
-    msg_.angle   = (int16_t)mb_faultNow;
-    msg_.current = (int16_t)mb_torque;
-    msg_.velocity = (int16_t)mb_velocity;
-    msg_.is_motor_enable = isMotorEnable;
-    msg_.is_grp_init_ongoing = isGrpInitOngoing;
-    msg_.is_pos_ongoing = isPosOngoing;
-    msg_.is_vel_ongoing = isVelOngoing;
-    msg_.is_tor_ongoing = isTorOngoing;
-    msg_.is_grp_opening = isGrpOpening;
-    msg_.is_grp_closing = isGrpClosing;
-    msg_.grp_direction = grpDirection;
-    msg_.is_object_grasp = isObjectGrasp;
-    msg_.is_fault_occured = isFaultOccured;
+    msg_.motor_enabled       = status_info[0][1] == "true";
+    msg_.gripper_initialized = status_info[1][1] == "true";
+    msg_.position_ctrl_mode  = status_info[2][1] == "true";
+    msg_.velocity_ctrl_mode  = status_info[3][1] == "true";
+    msg_.current_ctrl_mode   = status_info[4][1] == "true";
+    msg_.grp_opened          = status_info[5][1] == "true";
+    msg_.grp_closed          = status_info[6][1] == "true";
+    msg_.motor_fault         = status_info[9][1] == "true";
 
     grp_state_publisher_->publish(msg_);
-
     return true;
-}
-
-void GripperNode::toggleCheckValue() {
-    setReadMode(!read_mode_);
 }
 
 // Main loop
@@ -614,7 +531,7 @@ void GripperNode::run() {
         loop_rate.sleep();
     }
 
-    driverDisable();
+    motorDisable();
     modbusRelease();
 
     Q_EMIT rclcpp::shutdown();

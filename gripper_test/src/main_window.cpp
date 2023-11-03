@@ -83,23 +83,23 @@ MainWindow::~MainWindow() {
 
 void MainWindow::timerCallback() {
     // Display
-    ui.lineEdit_monitor_position-> setText(QString::number((double)grp_node_->msg_.angle / 100 , 'f', 1) + " %");
-    ui.lineEdit_monitor_current -> setText(QString::number(grp_node_->msg_.current, 'd', 0) + " mA");
-    ui.lineEdit_monitor_mode    -> setText(QString::fromStdString(grp_node_->MB_STATUS));
+    ui.lineEdit_monitor_position-> setText(QString::number((double)grp_node_->msg_.finger_position / 100 , 'f', 1) + " %");
+    ui.lineEdit_monitor_current -> setText(QString::number(grp_node_->msg_.motor_current, 'd', 0) + " mA");
+    ui.lineEdit_monitor_mode    -> setText(QString::fromStdString(grp_node_->status_str_));
 }
 
 void MainWindow::pushButton_cmdEnableCallback() {
-    grp_node_->driverEnable();
+    grp_node_->motorEnable();
 }
 
 void MainWindow::pushButton_cmdDisableCallback() {
-    grp_node_->driverDisable();
+    grp_node_->motorDisable();
 }
 
 void MainWindow::pushButton_grpPosCtrlCallback() {
     uint16_t parameter;
     parameter = ui.doubleSpinBox_grpPos_ctrl_range_1->value() * 100;
-    grp_node_->grpPosCtrl(parameter);
+    grp_node_->setFingerPos(parameter);
 }
 
 void MainWindow::pushButton_grpInitCallback() {

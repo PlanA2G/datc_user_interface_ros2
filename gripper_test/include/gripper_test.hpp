@@ -13,6 +13,7 @@
 #include <math.h>
 #include <mutex>
 #include <modbus/modbus-rtu.h>
+#include <map>
 
 #include "grp_control_msg/msg/gripper_msg.hpp"
 
@@ -22,67 +23,39 @@
 
 #include "parameter_define.hpp"
 
-#define NUM_REG 3
-
-#define COIL_ENABLE    0
-#define COIL_DISABLE   1
-#define COIL_MOVE      2
-#define COIL_POS_CTRL  3
-#define COIL_VEL_CTRL  4
-#define COIL_CUR_CTRL  5
-#define COIL_SET_VALUE 6
-#define COIL_STOP      7
-#define COIL_INIT      8
-#define COIL_OPEN      9
-#define COIL_CLOSE     10
-#define COIL_PARGRIP   11
-
-#define MB_IDLE_STATE         0x0000
-#define MB_ENABLE_STATE       0x0001
-#define MB_GRP_INIT_STATE     0x0002
-#define MB_POS_CTRL_STATE     0x0004
-#define MB_VEL_CTRL_STATE     0x0008
-#define MB_TOR_CTRL_STATE     0x0010
-#define MB_GRP_OPEN_STATE     0x0020
-#define MB_GRP_CLOSE_STATE    0x0040
-#define MB_GRP_DIR_REV_STATE  0x0080
-#define MB_GRP_OBJ_GRASP      0x0100
-#define MB_FAULT_OCCURED      0x0200
-
 // ROS log macro
 #define ROS_LOG_INFO(...)  RCLCPP_INFO (rclcpp::get_logger("Gripper Control"), __VA_ARGS__);
 #define ROS_LOG_WARN(...)  RCLCPP_WARN (rclcpp::get_logger("Gripper Control"), __VA_ARGS__);
 #define ROS_LOG_ERROR(...) RCLCPP_ERROR(rclcpp::get_logger("Gripper Control"), __VA_ARGS__);
 
-typedef enum {
-    MB_NONE    = 0,
-    MB_ENABLE  = 1,
-    MB_STOP_P  = 2,
-    MB_STOP_V  = 3,
-    MB_DISABLE = 4,
+enum class GRP_COMMAND {
+    MOTOR_ENABLE           = 1,
+    MOTOR_STOP             = 2,
+    MOTOR_DISABLE          = 3,
+    MOTOR_POSITION_CONTROL = 5,
+    MOTOR_VELOCITY_CONTROL = 6,
+    MOTOR_CURRENT_CONTROL  = 7,
+    CHANGE_MODBUS_ADDRESS  = 50,
+    GRIPPER_INITIALIZE     = 101,
+    GRIPPER_OPEN           = 102,
+    GRIPPER_CLOSE          = 103,
+    SET_FINGER_POSITION    = 104,
+    VACUUM_GRIPPER_ON      = 106,
+    VACUUM_GRIPPER_OFF     = 107,
+    SET_MOTOR_TORQUE       = 212,
+    SET_MOTOR_SPEED        = 213,
+};
 
-    MB_POS_CTRL = 5,
-    MB_VEL_CTRL = 6,
-    MB_TOR_CTRL = 7,
-
-    MB_GRP_SET_DIR  = 100,
-    MB_GRP_INIT     = 101,
-    MB_GRP_OPEN     = 102,
-    MB_GRP_CLOSE    = 103,
-    MB_GRP_POS_CTRL = 104,
-    MB_GRP_INIT2    = 105,
-    MB_VAC_ON       = 106,
-    MB_VAC_OFF      = 107,
-
-    MB_SET_MAX_VAL = 201,
-
-    MB_SET_PID_GAIN = 211,
-} MB_CMD_1_t;
-
-typedef enum {
-    MB_2_NONE = 0,
-} MB_CMD_2_t;
-
+struct DatcStatus {
+    bool enable         = false;
+    bool initialize     = false;
+    bool motor_pos_ctrl = false;
+    bool motor_vel_ctrl = false;
+    bool motor_cur_ctrl = false;
+    bool grp_open       = false;
+    bool grp_close      = false;
+    bool fault          = false;
+};
 
 namespace gripper_ui {
 
@@ -104,49 +77,29 @@ public:
 
     int slaveChange(uint slave_address);
 
-    bool driverEnable();
-    bool driverDisable();
-    bool grpPowerCtrl(bool tf);
+    bool motorEnable();
+    bool motorDisable();
+    // bool setParam(OtherParam other_param);
 
-    bool posCtrl(PosCtrlParam pos_ctrl_param);
-    bool velCtrl(VelCtrlParam vel_ctrl_param);
-    bool curCtrl(CurCtrlParam cur_ctrl_param);
+    bool motorPosCtrl(int q_target  , uint duration);
+    bool motorVelCtrl(int qd_target , uint duration);
+    bool motorCurCtrl(int cur_target, uint duration);
+
     bool grpInit();
     bool grpOpen();
+    bool grpClose();
+
     bool vacuumGrpOn();
     bool vacuumGrpOff();
-    bool grpClose();
-    bool grp3FparClose();
-    bool grpPosCtrl(uint16_t);
 
-    bool stopMotor(StopMotorParam stop_motor_param);
+    bool motorStop(uint16_t duration);
 
-    bool setParam(OtherParam other_param);
-
-    bool sendOrder_noMutex(std::string error_prefix, std::vector<uint16_t> buf_register);
-
-    bool sendOrder(std::string error_prefix, std::vector<uint16_t> buf_register);
-    //bool sendOrder(std::string error_prefix, std::vector<uint16_t> buf_register, int coil_address);
-    //bool sendOrder(std::string error_prefix, int coil_address);
-    void toggleCheckValue();
+    bool setFingerPos(uint16_t);
 
     grp_control_msg::msg::GripperMsg msg_;
 
-    MB_CMD_1_t  MB_CMD_1;
-    MB_CMD_2_t  MB_CMD_2;
-
-    std::string MB_STATUS;
-    bool isMotorEnable;
-    bool isGrpInitOngoing;
-    bool isPosOngoing;
-    bool isVelOngoing;
-    bool isTorOngoing;
-    bool isGrpOpening;
-    bool isGrpClosing;
-    bool grpDirection;
-    bool isObjectGrasp;
-    bool isFaultOccured;
-    std::string MB_GRP_DIR;
+    DatcStatus datc_status_;
+    std::string status_str_;
 
 private:
 	int init_argc;
@@ -171,6 +124,9 @@ private:
 
     std::mutex mutex_com_;
     std::mutex mutex_var_;
+
+    bool sendOrder      (std::string error_prefix, std::vector<uint16_t> buf_register);
+    bool sendOrder_mutex(std::string error_prefix, std::vector<uint16_t> buf_register);
 
 	void run();
     bool driverEnableCallback(const std::shared_ptr<grp_control_msg::srv::DriverEnable::Request> req, std::shared_ptr<grp_control_msg::srv::DriverEnable::Response> res);
