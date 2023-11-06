@@ -1,6 +1,5 @@
 int16 position
 int16 velocity
-int16 acceleration
 int16 current
 uint16 duration
 ---

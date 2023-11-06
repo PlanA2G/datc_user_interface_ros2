@@ -1,3 +1,13 @@
+/**
+ * @file main_window.hpp
+ * @author Inhwan Yoon (inhwan94@korea.ac.kr)
+ * @brief
+ * @version 1.0
+ * @date 2023-11-06
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #ifndef MAIN_WINDOW_HPP
 #define MAIN_WINDOW_HPP
 
@@ -12,7 +22,7 @@
 #include <math.h>
 
 #include "gripper_test/ui_gripper_window.h"
-#include "gripper_test.hpp"
+#include "datc_ros_interface.hpp"
 
 using namespace std;
 
@@ -45,7 +55,7 @@ public Q_SLOTS:
 private:
     Ui::MainWindowDesign ui;
 	QTimer *timer_;
-    GripperNode *grp_node_;
+    DatcRosInterface *datc_interface_;
 };
 
 }

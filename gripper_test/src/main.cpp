@@ -1,21 +1,16 @@
 /**
- * @file /src/main.cpp
- *
+ * @file main.cpp
+ * @author Inhwan Yoon (inhwan94@korea.ac.kr)
  * @brief Qt based gui.
+ * @version 1.0
+ * @date 2023-11-06
  *
- * @date November 2010
- **/
-/*****************************************************************************
-** Includes
-*****************************************************************************/
-
+ * @copyright Copyright (c) 2023
+ *
+ */
 #include <QtGui>
 #include <QApplication>
 #include "../include/main_window.hpp"
-
-/*****************************************************************************
-** Main
-*****************************************************************************/
 
 int main(int argc, char **argv) {
     bool flag_init_success = false;

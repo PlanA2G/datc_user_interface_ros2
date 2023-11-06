@@ -678,7 +678,7 @@ Disable</string>
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="pushButton_cmd_initial">
+   <widget class="QPushButton" name="pushButton_cmd_initialize">
     <property name="geometry">
      <rect>
       <x>10</x>
