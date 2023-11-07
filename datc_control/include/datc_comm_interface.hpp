@@ -1,5 +1,5 @@
 /**
- * @file datc_ros_interface.hpp
+ * @file datc_comm_interface.hpp
  * @author Inhwan Yoon (inhwan94@korea.ac.kr)
  * @brief
  * @version 1.0
@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef DATC_ROS_INTERFACE_HPP
-#define DATC_ROS_INTERFACE_HPP
+#ifndef DATC_COMM_INTERFACE_HPP
+#define DATC_COMM_INTERFACE_HPP
 
 #include "datc_ctrl.hpp"
 #include <rclcpp/rclcpp.hpp>
@@ -27,12 +27,12 @@ using namespace std;
 using namespace grp_control_msg::srv;
 using namespace grp_control_msg::msg;
 
-class DatcRosInterface : public QThread, public DatcCtrl {
+class DatcCommInterface : public QThread, public DatcCtrl {
     Q_OBJECT
 
 public:
-    DatcRosInterface(int argc, char **argv);
-    virtual ~DatcRosInterface();
+    DatcCommInterface(int argc, char **argv);
+    virtual ~DatcCommInterface();
 
 Q_SIGNALS:
     void rosShutdown();
@@ -82,4 +82,4 @@ private:
     bool checkValue();
 };
 
-#endif // DATC_ROS_INTERFACE_HPP
+#endif // DATC_COMM_INTERFACE_HPP

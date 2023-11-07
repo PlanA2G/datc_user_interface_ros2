@@ -18,7 +18,7 @@ MainWindow::MainWindow(int argc, char **argv, bool &success, QWidget *parent): Q
     ui.setupUi(this);
 
     //setWindowIcon(QIcon(":/images/icon.png"));
-    datc_interface_ = new DatcRosInterface(argc, argv);
+    datc_interface_ = new DatcCommInterface(argc, argv);
 
     // Button mapping
     QObject::connect(ui.pushButton_cmd_enable  , SIGNAL(clicked()), this, SLOT(pushButton_cmdEnableCallback()));

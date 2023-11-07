@@ -1,5 +1,5 @@
 /**
- * @file datc_ros_interface.cpp
+ * @file datc_comm_interface.cpp
  * @author Inhwan Yoon (inhwan94@korea.ac.kr)
  * @brief
  * @version 1.0
@@ -8,20 +8,20 @@
  * @copyright Copyright (c) 2023
  *
  */
-#include "datc_ros_interface.hpp"
+#include "datc_comm_interface.hpp"
 
 const uint kFreq = 50;
 
-DatcRosInterface::DatcRosInterface(int argc, char **argv) {
+DatcCommInterface::DatcCommInterface(int argc, char **argv) {
     rclcpp::init(argc, argv);
     nh_ = rclcpp::Node::make_shared("DATC_Control_Interface");
 }
 
-DatcRosInterface::~DatcRosInterface() {
+DatcCommInterface::~DatcCommInterface() {
     modbusRelease();
 }
 
-bool DatcRosInterface::init(char *port_name, uint slave_address) {
+bool DatcCommInterface::init(char *port_name, uint slave_address) {
     if (!modbusInit(port_name, slave_address)) {
         return false;
     }
@@ -120,7 +120,7 @@ bool DatcRosInterface::init(char *port_name, uint slave_address) {
     return true;
 }
 
-void DatcRosInterface::pubTopic() {
+void DatcCommInterface::pubTopic() {
     DatcStatus datc_status = getDatcStatus();
     grp_control_msg::msg::GripperMsg msg;
 
@@ -142,7 +142,7 @@ void DatcRosInterface::pubTopic() {
 }
 
 // Main loop
-void DatcRosInterface::run() {
+void DatcCommInterface::run() {
     double period = 1 / (double) kFreq;
 
     timespec time_prev, time_current;

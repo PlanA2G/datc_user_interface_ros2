@@ -22,7 +22,7 @@
 #include <math.h>
 
 #include "gripper_test/ui_gripper_window.h"
-#include "datc_ros_interface.hpp"
+#include "datc_comm_interface.hpp"
 
 using namespace std;
 
@@ -58,7 +58,7 @@ public Q_SLOTS:
 private:
     Ui::MainWindowDesign ui;
 	QTimer *timer_;
-    DatcRosInterface *datc_interface_;
+    DatcCommInterface *datc_interface_;
 };
 
 }
