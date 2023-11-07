@@ -160,6 +160,8 @@ void DatcCommInterface::run() {
                 readDatcData();
                 pubTopic();
             }
+
+            time_prev = time_current;
         }
     }
 

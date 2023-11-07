@@ -21,8 +21,13 @@
 #include <iostream>
 #include <math.h>
 
-#include "gripper_test/ui_gripper_window.h"
 #include "datc_comm_interface.hpp"
+
+#ifdef RCLCPP__RCLCPP_HPP_
+#include "gripper_test/ui_gripper_window.h"
+#else
+#include "./ui_gripper_window.h"
+#endif
 
 using namespace std;
 
@@ -56,7 +61,12 @@ public Q_SLOTS:
     void pushButton_setSpeedCallback();
 
 private:
+#ifdef RCLCPP__RCLCPP_HPP_
     Ui::MainWindowDesign ui;
+#else
+    Ui::MainWindow ui;
+#endif
+
 	QTimer *timer_;
     DatcCommInterface *datc_interface_;
 };
