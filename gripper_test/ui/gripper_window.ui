@@ -821,7 +821,7 @@ Gripper Off</string>
       </widget>
      </item>
      <item row="4" column="1" colspan="2">
-      <widget class="QSpinBox" name="spinBox_grpPos_ctrl_range_2">
+      <widget class="QSpinBox" name="spinBox_motor_torque_ratio">
        <property name="font">
         <font>
          <pointsize>12</pointsize>

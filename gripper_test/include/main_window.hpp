@@ -52,6 +52,9 @@ public Q_SLOTS:
     void pushButton_vacuumGrpOnCallback();
     void pushButton_vacuumGrpOffCallback();
 
+    void pushButton_setTorqueCallback();
+    void pushButton_setSpeedCallback();
+
 private:
     Ui::MainWindowDesign ui;
 	QTimer *timer_;

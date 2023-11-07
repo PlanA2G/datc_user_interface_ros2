@@ -31,6 +31,8 @@ MainWindow::MainWindow(int argc, char **argv, bool &success, QWidget *parent): Q
     QObject::connect(ui.pushButton_cmd_grp_vacuum_on , SIGNAL(clicked()), this, SLOT(pushButton_vacuumGrpOnCallback()));
     QObject::connect(ui.pushButton_cmd_grp_vacuum_off, SIGNAL(clicked()), this, SLOT(pushButton_vacuumGrpOffCallback()));
 
+    QObject::connect(ui.pushButton_set_torque_ratio, SIGNAL(clicked()), this, SLOT(pushButton_setTorqueCallback()));
+
     if (argc >= 3) {
         string address_str = argv[2];
         uint slave_address = stoi(address_str);
@@ -104,6 +106,14 @@ void MainWindow::pushButton_vacuumGrpOnCallback() {
 
 void MainWindow::pushButton_vacuumGrpOffCallback() {
     datc_interface_->vacuumGrpOff();
+}
+
+void MainWindow::pushButton_setTorqueCallback() {
+    datc_interface_->setMotorTorque(ui.spinBox_motor_torque_ratio->value());
+}
+
+void MainWindow::pushButton_setSpeedCallback() {
+
 }
 
 }   // end of namespace

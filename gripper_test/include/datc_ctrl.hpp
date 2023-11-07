@@ -19,6 +19,8 @@
 #define SEND_CMD_VECTOR(...) mbc_.sendData(CMD_ADDR, __VA_ARGS__)
 #define SEND_CMD(...) mbc_.sendData(CMD_ADDR, (uint16_t) __VA_ARGS__)
 
+using namespace std;
+
 const uint16_t kDurationMin    = 10;
 const uint16_t kDurationMax    = 100000;
 const uint16_t kFingerPosMin   = 0;
@@ -47,7 +49,7 @@ enum class DATC_COMMAND {
 };
 
 struct DatcStatus {
-    std::string status_str;
+    string status_str;
 
     bool enable         = false;
     bool initialize     = false;
@@ -100,7 +102,7 @@ public:
     DatcStatus getDatcStatus() {return status_;};
 
 protected:
-    bool checkDurationRange(std::string error_prefix, uint16_t &duration);
+    bool checkDurationRange(string error_prefix, uint16_t &duration);
     bool command(DATC_COMMAND cmd, uint16_t value_1 = 0, uint16_t value_2 = 0);
 
     ModbusComm mbc_;

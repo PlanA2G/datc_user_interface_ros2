@@ -42,17 +42,17 @@ bool DatcCtrl::motorDisable() {
 }
 
 bool DatcCtrl::motorPosCtrl(int16_t pos_deg, uint16_t duration) {
-    std::string error_prefix = "[Motor Position Control]";
+    string error_prefix = "[Motor Position Control]";
     checkDurationRange(error_prefix, duration);
     return command(DATC_COMMAND::MOTOR_POSITION_CONTROL, pos_deg, duration);
 }
 bool DatcCtrl::motorVelCtrl(int16_t velocity, uint16_t duration) {
-    std::string error_prefix = "[Motor Velocity Control]";
+    string error_prefix = "[Motor Velocity Control]";
     checkDurationRange(error_prefix, duration);
     return command(DATC_COMMAND::MOTOR_VELOCITY_CONTROL, velocity, duration);
 }
 bool DatcCtrl::motorCurCtrl(int16_t current, uint16_t duration) {
-    std::string error_prefix = "[Motor Current Control]";
+    string error_prefix = "[Motor Current Control]";
     checkDurationRange(error_prefix, duration);
     return command(DATC_COMMAND::MOTOR_CURRENT_CONTROL, current, duration);
 }
@@ -76,7 +76,7 @@ bool DatcCtrl::grpClose() {
 }
 
 bool DatcCtrl::setFingerPos(uint16_t finger_pos) {
-    std::string error_prefix = "[Set Finger Position]";
+    string error_prefix = "[Set Finger Position]";
 
     if (finger_pos < kFingerPosMin) {
         printf("%s Invalid range of finger position ( < %d)", error_prefix.c_str(), kFingerPosMin);
@@ -98,7 +98,7 @@ bool DatcCtrl::vacuumGrpOff() {
 }
 
 bool DatcCtrl::setMotorTorque(uint16_t torque_ratio) {
-    std::string error_prefix = "[Set Motor Torque]";
+    string error_prefix = "[Set Motor Torque]";
 
     if (torque_ratio < kTorqueRatioMin) {
         printf("%s Motor torque is too low ( < %d)", error_prefix.c_str(), kTorqueRatioMin);
@@ -112,7 +112,7 @@ bool DatcCtrl::setMotorTorque(uint16_t torque_ratio) {
 }
 
 bool DatcCtrl::setMotorSpeed (uint16_t speed_ratio) {
-    std::string error_prefix = "[Set Motor Torque]";
+    string error_prefix = "[Set Motor Speed]";
 
     if (speed_ratio < kSpeedRatioMin) {
         printf("%s Motor torque is too low ( < %d)", error_prefix.c_str(), kSpeedRatioMin);
@@ -126,23 +126,24 @@ bool DatcCtrl::setMotorSpeed (uint16_t speed_ratio) {
 }
 
 bool DatcCtrl::readDatcData() {
-    static std::map<uint, std::vector<std::string>> status_info;
+    static map<uint, pair<bool*, string>> status_info;
 
     if (status_info.size() == 0) {
-        status_info.insert({0, {"false", "Motor Enable"}});
-        status_info.insert({1, {"false", "Gripper Initialize"}});
-        status_info.insert({2, {"false", "Motor Position Control"}});
-        status_info.insert({3, {"false", "Motor Velocity Control"}});
-        status_info.insert({4, {"false", "Motor Current Control"}});
-        status_info.insert({5, {"false", "Gripper Open"}});
-        status_info.insert({6, {"false", "Gripper Close"}});
-        status_info.insert({9, {"false", "Motor Fault"}});
+        // Bit, Value, Status 순서
+        status_info.insert({0, make_pair(&status_.enable        , "Motor Enable")});
+        status_info.insert({1, make_pair(&status_.initialize    , "Gripper Initialize")});
+        status_info.insert({2, make_pair(&status_.motor_pos_ctrl, "Motor Position Control")});
+        status_info.insert({3, make_pair(&status_.motor_vel_ctrl, "Motor Velocity Control")});
+        status_info.insert({4, make_pair(&status_.motor_cur_ctrl, "Motor Current Control")});
+        status_info.insert({5, make_pair(&status_.grp_open      , "Gripper Open")});
+        status_info.insert({6, make_pair(&status_.grp_close     , "Gripper Close")});
+        status_info.insert({9, make_pair(&status_.fault         , "Motor Fault")});
     }
 
     // Read input register //
     uint16_t reg_addr = 10;
     uint16_t reg_num  = 8;
-    std::vector<uint16_t> reg;
+    vector<uint16_t> reg;
 
     mbc_.recvData(reg_addr, reg_num, reg);
 
@@ -158,8 +159,10 @@ bool DatcCtrl::readDatcData() {
     for (int i = 0; i < 16; i++) {
         if (status_info.find(i) != status_info.end()) {
             if (status & (0x01 << i)) {
-                status_info[i][0] = "true";
-                status_.status_str = status_info[i][1];
+                *status_info[i].first = true;
+                status_.status_str = status_info[i].second;
+            } else {
+                *status_info[i].first = false;
             }
         }
     }
@@ -167,7 +170,7 @@ bool DatcCtrl::readDatcData() {
     return true;
 }
 
-bool DatcCtrl::checkDurationRange(std::string error_prefix, uint16_t &duration) {
+bool DatcCtrl::checkDurationRange(string error_prefix, uint16_t &duration) {
     if (duration < kDurationMin) {
         printf("%s Duration is too short ( < %dms)", error_prefix.c_str(), kDurationMin);
         duration = kDurationMin;
@@ -193,16 +196,16 @@ bool DatcCtrl::command(DATC_COMMAND cmd, uint16_t value_1, uint16_t value_2) {
             return SEND_CMD(cmd);
 
         case DATC_COMMAND::MOTOR_POSITION_CONTROL:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
 
         case DATC_COMMAND::MOTOR_VELOCITY_CONTROL:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
 
         case DATC_COMMAND::MOTOR_CURRENT_CONTROL:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1, value_2}));
 
         case DATC_COMMAND::CHANGE_MODBUS_ADDRESS:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1}));
 
         case DATC_COMMAND::GRIPPER_INITIALIZE:
             return SEND_CMD(cmd);
@@ -214,7 +217,7 @@ bool DatcCtrl::command(DATC_COMMAND cmd, uint16_t value_1, uint16_t value_2) {
             return SEND_CMD(cmd);
 
         case DATC_COMMAND::SET_FINGER_POSITION:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1}));
 
         case DATC_COMMAND::VACUUM_GRIPPER_ON:
             return SEND_CMD(cmd);
@@ -223,10 +226,10 @@ bool DatcCtrl::command(DATC_COMMAND cmd, uint16_t value_1, uint16_t value_2) {
             return SEND_CMD(cmd);
 
         case DATC_COMMAND::SET_MOTOR_TORQUE:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1}));
 
         case DATC_COMMAND::SET_MOTOR_SPEED:
-            return SEND_CMD_VECTOR(std::vector<uint16_t> ({(uint16_t) cmd, value_1}));
+            return SEND_CMD_VECTOR(vector<uint16_t> ({(uint16_t) cmd, value_1}));
 
         default:
             COUT("Error: Undefined command.");
