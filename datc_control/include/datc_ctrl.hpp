@@ -22,7 +22,7 @@
 using namespace std;
 
 const uint16_t kDurationMin    = 10;
-const uint16_t kDurationMax    = 100000;
+const uint16_t kDurationMax    = 10000;
 const uint16_t kFingerPosMin   = 0;
 const uint16_t kFingerPosMax   = 10000;
 const uint16_t kTorqueRatioMin = 50;

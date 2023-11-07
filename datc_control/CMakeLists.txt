@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(grp_control LANGUAGES CXX)
+project(datc_control LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
