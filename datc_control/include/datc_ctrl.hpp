@@ -65,6 +65,7 @@ struct DatcStatus {
     int16_t motor_cur = 0;
     uint16_t finger_pos = 0;
     uint16_t voltage    = 0;
+    uint16_t states     = 0;
 };
 
 class DatcCtrl {
@@ -72,9 +73,9 @@ public:
     DatcCtrl();
     ~DatcCtrl();
 
-    bool modbusInit(char *port_name, uint slave_address);
+    bool modbusInit(const char *port_name, uint16_t slave_address);
     bool modbusRelease();
-    bool modbusSlaveChange(uint slave_addr);
+    bool modbusSlaveChange(uint16_t slave_addr);
 
     bool motorEnable();
     bool motorStop();
@@ -100,6 +101,7 @@ public:
 
     bool readDatcData();
     DatcStatus getDatcStatus() {return status_;};
+    bool getConnectionState() {return mbc_.getConnectionState();}
 
 protected:
     bool checkDurationRange(string error_prefix, uint16_t &duration);

@@ -11,63 +11,82 @@
 #ifndef MAIN_WINDOW_HPP
 #define MAIN_WINDOW_HPP
 
-#include <QtGui>
 #include <QTimer>
 #include <QLineEdit>
 #include <QList>
-#include <QMessageBox>
 #include <QMainWindow>
 
 #include <iostream>
 #include <math.h>
 
 #include "datc_comm_interface.hpp"
-
-#ifdef RCLCPP__RCLCPP_HPP_
-#include "gripper_test/ui_gripper_window.h"
-#else
-#include "./ui_gripper_window.h"
-#endif
+#include "ui_main_window.h"
+#include "custom_widget.hpp"
 
 using namespace std;
 
 namespace gripper_ui {
 
+enum class WidgetSeq {
+    MODBUS_WIDGET    = 0,
+    DATC_CTRL_WIDGET = 1,
+    TCP_WIDGET       = 2
+};
+
 class MainWindow : public QMainWindow {
-Q_OBJECT
+    Q_OBJECT
 
 public:
-	MainWindow(int argc, char** argv, bool &success, QWidget *parent = 0);
-	~MainWindow();
+    MainWindow(int argc, char** argv, bool &success, QWidget *parent = 0);
+    ~MainWindow();
 
 public Q_SLOTS:
-
     void timerCallback();
 
     // Enable & disable
-    void pushButton_cmdEnableCallback();
-    void pushButton_cmdDisableCallback();
+    void datcEnable();
+    void datcDisable();
 
-    // Control
-    void pushButton_grpPosCtrlCallback();
+    // Datc control
+    void datcFingerPosCtrl();
 
-    void pushButton_grpInitCallback();
-    void pushButton_grpOpenCallback();
-    void pushButton_grpCloseCallback();
-    void pushButton_vacuumGrpOnCallback();
-    void pushButton_vacuumGrpOffCallback();
+    void datcInit();
+    void datcOpen();
+    void datcClose();
+    void datcVacuumGrpOn();
+    void datcVacuumGrpOff();
 
-    void pushButton_setTorqueCallback();
-    void pushButton_setSpeedCallback();
+    void datcSetTorque();
+    void datcSetSpeed();
 
-private:
-#ifdef RCLCPP__RCLCPP_HPP_
-    Ui::MainWindowDesign ui;
-#else
-    Ui::MainWindow ui;
+    // Modbus RTU related
+    void initModbus();
+    void releaseModbus();
+    void changeSlaveAddress();
+    void setSlaveAddr();
+
+#ifndef RCLCPP__RCLCPP_HPP_
+    // TCP comm. related functions
+    void startTcpComm();
+    void stopTcpComm();
 #endif
 
-	QTimer *timer_;
+    // Auto mapping function
+    void on_pushButton_select_modbus_clicked();
+    void on_pushButton_select_datc_ctrl_clicked();
+    void on_pushButton_select_tcp_clicked();
+
+private:
+    Ui::MainWindow *ui_;
+
+    ModbusWidget   *modbus_widget_;
+    DatcCtrlWidget *datc_ctrl_widget_;
+    TcpWidget      *tcp_widget_;
+
+    QString menu_btn_active_str_, menu_btn_inactive_str_;
+    QString btn_active_str_, btn_inactive_str_;
+
+    QTimer *timer_;
     DatcCommInterface *datc_interface_;
 };
 

@@ -8,11 +8,10 @@
  * @copyright Copyright (c) 2023
  *
  */
-#include <QtGui>
+#include "main_window.hpp"
 #include <QApplication>
-#include "../include/main_window.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
     bool flag_init_success = false;
 
     QApplication app(argc, argv);

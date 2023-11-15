@@ -32,6 +32,7 @@ file (GLOB ${PROJECT_NAME}_SRCS
   ui/*.ui
   src/*.cpp
   include/*.hpp
+  asset/*/*.qrc
 )
 
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRCS})

@@ -16,7 +16,7 @@ DatcCtrl::DatcCtrl() {
 DatcCtrl::~DatcCtrl() {
 }
 
-bool DatcCtrl::modbusInit(char *port_name, uint slave_address) {
+bool DatcCtrl::modbusInit(const char *port_name, uint16_t slave_address) {
     return mbc_.modbusInit(port_name, slave_address);
 }
 
@@ -25,7 +25,7 @@ bool DatcCtrl::modbusRelease() {
     return true;
 }
 
-bool DatcCtrl::modbusSlaveChange(uint slave_addr) {
+bool DatcCtrl::modbusSlaveChange(uint16_t slave_addr) {
     return mbc_.slaveChange(slave_addr);
 }
 
@@ -126,7 +126,7 @@ bool DatcCtrl::setMotorSpeed (uint16_t speed_ratio) {
 }
 
 bool DatcCtrl::readDatcData() {
-    static map<uint, pair<bool*, string>> status_info;
+    static map<uint16_t, pair<bool*, string>> status_info;
 
     if (status_info.size() == 0) {
         // Bit, Value, Status 순서
@@ -145,29 +145,36 @@ bool DatcCtrl::readDatcData() {
     uint16_t reg_num  = 8;
     vector<uint16_t> reg;
 
-    mbc_.recvData(reg_addr, reg_num, reg);
+    if (mbc_.recvData(reg_addr, reg_num, reg)) {
+        uint16_t status    = reg[0];
+        status_.states     = status;
+        status_.motor_pos  = reg[1];
+        status_.motor_cur  = reg[2];
+        status_.motor_vel  = reg[3];
+        status_.finger_pos = reg[4];
+        status_.voltage    = reg[7];
 
-    uint16_t status    = reg[0];
-    status_.motor_pos  = reg[1];
-    status_.motor_cur  = reg[2];
-    status_.motor_vel  = reg[3];
-    status_.finger_pos = reg[4];
-    status_.voltage    = reg[7];
+        status_.status_str = "---";
 
-    status_.status_str = "Motor Disabled";
-
-    for (int i = 0; i < 16; i++) {
-        if (status_info.find(i) != status_info.end()) {
-            if (status & (0x01 << i)) {
-                *status_info[i].first = true;
-                status_.status_str = status_info[i].second;
-            } else {
-                *status_info[i].first = false;
+        for (int i = 0; i < 16; i++) {
+            if (status_info.find(i) != status_info.end()) {
+                if (status & (0x01 << i)) {
+                    *status_info[i].first = true;
+                    status_.status_str = status_info[i].second;
+                } else {
+                    *status_info[i].first = false;
+                }
             }
         }
-    }
 
-    return true;
+        if (!status_.enable) {
+            status_.status_str = "Motor Disabled";
+        }
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool DatcCtrl::checkDurationRange(string error_prefix, uint16_t &duration) {

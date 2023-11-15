@@ -38,7 +38,7 @@ Q_SIGNALS:
     void rosShutdown();
 
 public:
-	bool init(char *port_name, uint slave_address);
+	bool init(const char *port_name, uint slave_address);
 
 private:
     shared_ptr<rclcpp::Node> nh_;
