@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>914</width>
-    <height>547</height>
+    <height>526</height>
    </rect>
   </property>
   <property name="font">
@@ -571,6 +571,9 @@ QLineEdit{
                <weight>75</weight>
                <bold>true</bold>
               </font>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
              </property>
              <property name="readOnly">
               <bool>true</bool>

@@ -171,8 +171,10 @@ bool DatcCtrl::readDatcData() {
             status_.status_str = "Motor Disabled";
         }
 
+        flag_modbus_recv_err_ = false;
         return true;
     } else {
+        flag_modbus_recv_err_ = true;
         return false;
     }
 }

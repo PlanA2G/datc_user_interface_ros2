@@ -81,6 +81,8 @@ public:
     }
 
     bool slaveChange(uint16_t slave_address) {
+        connection_state_ = false;
+
         unique_lock<mutex> lg(mutex_comm_);
 
         if (modbus_set_slave(mb_, slave_address) == -1) {
@@ -91,8 +93,6 @@ public:
             return false;
         }
 
-        modbus_set_debug(mb_, DEBUG_MODE);
-
         if (modbus_connect(mb_) == -1) {
             fprintf(stderr, "Unable to connect %s\n", modbus_strerror(errno));
             modbus_close(mb_);
@@ -101,8 +101,9 @@ public:
             return false;
         }
 
-        usleep(100000);
+        usleep(10000);
         printf("Modbus slave address changed to %d\n", slave_address);
+        connection_state_ = true;
 
         return true;
     }
@@ -157,6 +158,7 @@ public:
         uint16_t data_temp[nb];
 
         if (modbus_read_registers(mb_, reg_addr, nb, data_temp) == -1) {
+            mutex_comm_.unlock();
             fprintf(stderr, "Failed to read input registers! : %s\n", modbus_strerror(errno));
             return false;
         }

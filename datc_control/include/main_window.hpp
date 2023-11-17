@@ -53,6 +53,7 @@ public Q_SLOTS:
     void datcInit();
     void datcOpen();
     void datcClose();
+    void datcStop();
     void datcVacuumGrpOn();
     void datcVacuumGrpOff();
 

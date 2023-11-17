@@ -102,6 +102,7 @@ public:
     bool readDatcData();
     DatcStatus getDatcStatus() {return status_;};
     bool getConnectionState() {return mbc_.getConnectionState();}
+    bool getModbusRecvErr() {return flag_modbus_recv_err_;}
 
 protected:
     bool checkDurationRange(string error_prefix, uint16_t &duration);
@@ -109,6 +110,8 @@ protected:
 
     ModbusComm mbc_;
     DatcStatus status_;
+
+    bool flag_modbus_recv_err_ = false;
 };
 
 #endif // DATC_CTRL_HPP

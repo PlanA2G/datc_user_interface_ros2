@@ -43,7 +43,18 @@ MainWindow::MainWindow(int argc, char **argv, bool &success, QWidget *parent) : 
     btn_active_str_   = "background-color:#FFFFFF;color:#888888;border-style:outset;border-width:7;";
     btn_inactive_str_ = "background-color:#BBBBBB;color:#888888;border-style:inset;border-width:7;";
 
-    modbus_widget_->ui_.comboBox_baudrate->lineEdit()->setAlignment(Qt::AlignCenter);
+    // Initial value setting
+    int finger_pos_init_value = 50;
+    int torque_init_value = 100;
+    int speed_init_value  = 75;
+
+    datc_ctrl_widget_->ui_.horizontalSlider_finger_pos->setValue(finger_pos_init_value);
+    datc_ctrl_widget_->ui_.verticalSlider_torque->setValue      (torque_init_value);
+    datc_ctrl_widget_->ui_.verticalSlider_speed ->setValue      (speed_init_value);
+
+    datc_ctrl_widget_->ui_.doubleSpinBox_finger_pos->setValue((double) finger_pos_init_value);
+    datc_ctrl_widget_->ui_.doubleSpinBox_torque->setValue    ((double) torque_init_value);
+    datc_ctrl_widget_->ui_.doubleSpinBox_speed->setValue     ((double) speed_init_value);
 
     // DATC control related btn
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_enable  , SIGNAL(clicked()), this, SLOT(datcEnable()));
@@ -53,10 +64,12 @@ MainWindow::MainWindow(int argc, char **argv, bool &success, QWidget *parent) : 
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_initialize    , SIGNAL(clicked()), this, SLOT(datcInit()));
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_grp_open      , SIGNAL(clicked()), this, SLOT(datcOpen()));
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_grp_close     , SIGNAL(clicked()), this, SLOT(datcClose()));
+    QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_grp_stop      , SIGNAL(clicked()), this, SLOT(datcStop()));
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_grp_vacuum_on , SIGNAL(clicked()), this, SLOT(datcVacuumGrpOn()));
     QObject::connect(datc_ctrl_widget_->ui_.pushButton_cmd_grp_vacuum_off, SIGNAL(clicked()), this, SLOT(datcVacuumGrpOff()));
 
-    QObject::connect(datc_ctrl_widget_->ui_.pushButton_set_torque_ratio, SIGNAL(clicked()), this, SLOT(datcSetTorque()));
+    QObject::connect(datc_ctrl_widget_->ui_.pushButton_set_torque, SIGNAL(clicked()), this, SLOT(datcSetTorque()));
+    QObject::connect(datc_ctrl_widget_->ui_.pushButton_set_speed , SIGNAL(clicked()), this, SLOT(datcSetSpeed()));
 
     // Modbus RTU related btn
     QObject::connect(modbus_widget_->ui_.pushButton_modbus_start, SIGNAL(clicked()), this, SLOT(initModbus()));
@@ -107,7 +120,6 @@ void MainWindow::timerCallback() {
     // Display
     ui_->lineEdit_monitor_finger_position-> setText(QString::number((double) datc_status.finger_pos / 100 , 'f', 1) + " %");
     ui_->lineEdit_monitor_current        -> setText(QString::number(datc_status.motor_cur, 'd', 0) + " mA");
-    ui_->lineEdit_monitor_mode           -> setText(" " + QString::fromStdString(datc_status.status_str));
 
     // Comm. status check
     const bool is_modbus_connected = datc_interface_->getConnectionState();
@@ -123,9 +135,13 @@ void MainWindow::timerCallback() {
     setButtonStyle(modbus_widget_->ui_.pushButton_modbus_slave_change);
 
     if (is_modbus_connected) {
-
+        if (datc_interface_->getModbusRecvErr()) {
+            ui_->lineEdit_monitor_mode->setText("Failed to read input register.");
+        } else {
+            ui_->lineEdit_monitor_mode->setText(" " + QString::fromStdString(datc_status.status_str));
+        }
     } else {
-
+        ui_->lineEdit_current_slave_addr->setText("N/A");
     }
 
 #ifndef RCLCPP__RCLCPP_HPP_
@@ -140,6 +156,40 @@ void MainWindow::timerCallback() {
 
     datc_interface_->setTcpSendStatus(tcp_widget_->ui_.checkBox_tcp_send_status->isChecked());
 #endif
+
+    // Slider control
+    static std::function syncSliderSpinboxFn(
+            [] (int &slider_data_prev, double &spinbox_data_prev, QSlider *slider, QDoubleSpinBox *spinbox) {
+        int slider_data     = slider->value();
+        double spinbox_data = spinbox->value();
+
+        if (slider_data != slider_data_prev) {
+            spinbox->setValue((double) slider_data);
+        } else if (fabs(spinbox_data - spinbox_data_prev) >= 0.09) {
+            slider->setValue((int) spinbox_data);
+        }
+
+        slider_data_prev  = slider->value();
+        spinbox_data_prev = spinbox->value();
+    });
+
+    static int slider_finger_pos_prev = datc_ctrl_widget_->ui_.horizontalSlider_finger_pos->value();
+    static int slider_torque_prev     = datc_ctrl_widget_->ui_.verticalSlider_torque->value();
+    static int slider_speed_prev      = datc_ctrl_widget_->ui_.verticalSlider_speed ->value();
+
+    static double finger_pos_prev = datc_ctrl_widget_->ui_.doubleSpinBox_finger_pos->value();
+    static double torque_prev     = datc_ctrl_widget_->ui_.doubleSpinBox_torque->value();
+    static double speed_prev      = datc_ctrl_widget_->ui_.doubleSpinBox_speed->value();
+
+    syncSliderSpinboxFn(slider_finger_pos_prev, finger_pos_prev,
+                        datc_ctrl_widget_->ui_.horizontalSlider_finger_pos,
+                        datc_ctrl_widget_->ui_.doubleSpinBox_finger_pos);
+    syncSliderSpinboxFn(slider_torque_prev, torque_prev,
+                        datc_ctrl_widget_->ui_.verticalSlider_torque,
+                        datc_ctrl_widget_->ui_.doubleSpinBox_torque);
+    syncSliderSpinboxFn(slider_speed_prev, speed_prev,
+                        datc_ctrl_widget_->ui_.verticalSlider_speed,
+                        datc_ctrl_widget_->ui_.doubleSpinBox_speed);
 }
 
 // Enable Disable
@@ -153,7 +203,7 @@ void MainWindow::datcDisable() {
 
 // Datc control
 void MainWindow::datcFingerPosCtrl() {
-    datc_interface_->setFingerPos(datc_ctrl_widget_->ui_.doubleSpinBox_grpPos_ctrl_range_1->value() * 100);
+    datc_interface_->setFingerPos(datc_ctrl_widget_->ui_.doubleSpinBox_finger_pos->value() * 100);
 }
 
 void MainWindow::datcInit() {
@@ -168,6 +218,10 @@ void MainWindow::datcClose() {
     datc_interface_->grpClose();
 }
 
+void MainWindow::datcStop() {
+    datc_interface_->motorStop();
+}
+
 void MainWindow::datcVacuumGrpOn() {
     datc_interface_->vacuumGrpOn();
 }
@@ -177,11 +231,11 @@ void MainWindow::datcVacuumGrpOff() {
 }
 
 void MainWindow::datcSetTorque() {
-    datc_interface_->setMotorTorque(datc_ctrl_widget_->ui_.spinBox_motor_torque_ratio->value());
+    datc_interface_->setMotorTorque((uint16_t) datc_ctrl_widget_->ui_.doubleSpinBox_torque->value());
 }
 
 void MainWindow::datcSetSpeed() {
-
+    datc_interface_->setMotorSpeed((uint16_t) datc_ctrl_widget_->ui_.doubleSpinBox_speed->value());
 }
 
 // Modbus RTU related
@@ -195,18 +249,26 @@ void MainWindow::initModbus() {
     uint16_t slave_addr = modbus_widget_->ui_.spinBox_slave_addr->value();
 
     if (datc_interface_->init(port, slave_addr)) {
-
+        ui_->lineEdit_current_slave_addr->setText(QString::fromStdString(std::to_string(slave_addr)));
     } else {
+        ui_->lineEdit_monitor_mode->setText("Invalid port or permission.");
         COUT("[ERROR] Port name or slave address invlaid !");
     }
 }
 
 void MainWindow::releaseModbus() {
     datc_interface_->modbusRelease();
+    ui_->lineEdit_monitor_mode->setText("");
 }
 
 void MainWindow::changeSlaveAddress() {
+    uint16_t slave_addr = modbus_widget_->ui_.spinBox_slave_addr->value();
 
+    if (datc_interface_->modbusSlaveChange(slave_addr)) {
+        ui_->lineEdit_current_slave_addr->setText(QString::fromStdString(std::to_string(slave_addr)));
+    } else {
+        COUT("[ERROR] Slave change failed !");
+    }
 }
 
 void MainWindow::setSlaveAddr() {
