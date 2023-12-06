@@ -20,19 +20,20 @@ DatcCommInterface::DatcCommInterface(int argc, char **argv) {
     publisher_grp_state_ = nh_->create_publisher<GripperMsg> ("grp_state", 1000);
 
     // Server
-    srv_modbus_init_release_ = nh_->create_service<SingleBoolean>("modbus_init_release",
-                               [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
-                                   req;
-                               });
+    // srv_modbus_init_release_ = nh_->create_service<SingleBoolean>("modbus_init_release",
+    //                            [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
+    //                                req;
+    //                            });
 
-    srv_motor_enable_ = nh_->create_service<SingleBoolean>("motor_enable",
-                        [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
-                            if (req->enable) {
-                                res->successed = motorEnable();
-                            } else {
-                                res->successed = motorDisable();
-                            }
+    srv_motor_enable_ = nh_->create_service<Void>("motor_enable",
+                        [&] (const shared_ptr<Void::Request> req, shared_ptr<Void::Response> res) {
+                            res->successed = motorEnable();
                         });
+
+    srv_motor_disable_ = nh_->create_service<Void>("motor_disable",
+                         [&] (const shared_ptr<Void::Request> req, shared_ptr<Void::Response> res) {
+                             res->successed = motorDisable();
+                         });
 
     srv_modbus_slave_change_ = nh_->create_service<SingleInt>("modbus_slave_change",
                                [&] (const shared_ptr<SingleInt::Request> req, shared_ptr<SingleInt::Response> res) {

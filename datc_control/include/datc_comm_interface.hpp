@@ -47,8 +47,9 @@ private:
     rclcpp::Publisher<GripperMsg>::SharedPtr publisher_grp_state_;
 
     // Server
-    rclcpp::Service<SingleBoolean>::SharedPtr srv_modbus_init_release_;
-    rclcpp::Service<SingleBoolean>::SharedPtr srv_motor_enable_;
+    // rclcpp::Service<SingleBoolean>::SharedPtr srv_modbus_init_release_;
+    rclcpp::Service<Void>::SharedPtr srv_motor_enable_;
+    rclcpp::Service<Void>::SharedPtr srv_motor_disable_;
 
     rclcpp::Service<SingleInt>::SharedPtr srv_modbus_slave_change_;
     rclcpp::Service<SingleInt>::SharedPtr srv_set_modbus_addr_;
