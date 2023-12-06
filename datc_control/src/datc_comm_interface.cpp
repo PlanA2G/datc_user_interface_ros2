@@ -15,25 +15,15 @@ const uint kFreq = 50;
 DatcCommInterface::DatcCommInterface(int argc, char **argv) {
     rclcpp::init(argc, argv);
     nh_ = rclcpp::Node::make_shared("DATC_Control_Interface");
-}
-
-DatcCommInterface::~DatcCommInterface() {
-    modbusRelease();
-}
-
-bool DatcCommInterface::init(const char *port_name, uint slave_address) {
-    if (!modbusInit(port_name, slave_address)) {
-        return false;
-    }
 
     // Publisher
     publisher_grp_state_ = nh_->create_publisher<GripperMsg> ("grp_state", 1000);
 
     // Server
     srv_modbus_init_release_ = nh_->create_service<SingleBoolean>("modbus_init_release",
-        [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
-            req;
-        });
+                               [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
+                                   req;
+                               });
 
     srv_motor_enable_ = nh_->create_service<SingleBoolean>("motor_enable",
                         [&] (const shared_ptr<SingleBoolean::Request> req, shared_ptr<SingleBoolean::Response> res) {
@@ -99,46 +89,54 @@ bool DatcCommInterface::init(const char *port_name, uint slave_address) {
                               res->successed = vacuumGrpOff();
                           });
 
-    srv_motor_pos_ctrl_ = nh_->create_service<PosVelCurCtrl>("motor_pos_ctrl",
-                          [&] (const shared_ptr<PosVelCurCtrl::Request> req, shared_ptr<PosVelCurCtrl::Response> res) {
-                              res->successed = motorPosCtrl(req->position, req->duration);
-                          });
+    // srv_motor_pos_ctrl_ = nh_->create_service<PosVelCurCtrl>("motor_pos_ctrl",
+    //                       [&] (const shared_ptr<PosVelCurCtrl::Request> req, shared_ptr<PosVelCurCtrl::Response> res) {
+    //                           res->successed = motorPosCtrl(req->position, req->duration);
+    //                       });
 
     srv_motor_vel_ctrl_ = nh_->create_service<PosVelCurCtrl>("motor_vel_ctrl",
                           [&] (const shared_ptr<PosVelCurCtrl::Request> req, shared_ptr<PosVelCurCtrl::Response> res) {
-                              res->successed = motorVelCtrl(req->velocity, req->duration);
+                              res->successed = motorVelCtrl(req->velocity);
                           });
 
     srv_motor_cur_ctrl_ = nh_->create_service<PosVelCurCtrl>("motor_cur_ctrl",
                           [&] (const shared_ptr<PosVelCurCtrl::Request> req, shared_ptr<PosVelCurCtrl::Response> res) {
-                              res->successed = motorCurCtrl(req->current, req->duration);
+                              res->successed = motorCurCtrl(req->current);
                           });
 
     COUT("DATC ros interface init.");
-
     start();
-    return true;
+}
+
+DatcCommInterface::~DatcCommInterface() {
+    modbusRelease();
+}
+
+bool DatcCommInterface::init(const char *port_name, uint slave_address) {
+    return modbusInit(port_name, slave_address);
 }
 
 void DatcCommInterface::pubTopic() {
-    DatcStatus datc_status = getDatcStatus();
-    grp_control_msg::msg::GripperMsg msg;
+    if (getConnectionState()) {
+        DatcStatus datc_status = getDatcStatus();
+        grp_control_msg::msg::GripperMsg msg;
 
-    msg.motor_position  = datc_status.motor_pos;
-    msg.motor_velocity  = datc_status.motor_vel;
-    msg.motor_current   = datc_status.motor_cur;
-    msg.finger_position = datc_status.finger_pos;
+        msg.motor_position  = datc_status.motor_pos;
+        msg.motor_velocity  = datc_status.motor_vel;
+        msg.motor_current   = datc_status.motor_cur;
+        msg.finger_position = datc_status.finger_pos;
 
-    msg.motor_enabled       = datc_status.enable;
-    msg.gripper_initialized = datc_status.initialize;
-    msg.position_ctrl_mode  = datc_status.motor_pos_ctrl;
-    msg.velocity_ctrl_mode  = datc_status.motor_vel_ctrl;
-    msg.current_ctrl_mode   = datc_status.motor_cur_ctrl;
-    msg.grp_opened          = datc_status.grp_open;
-    msg.grp_closed          = datc_status.grp_close;
-    msg.motor_fault         = datc_status.fault;
+        msg.motor_enabled       = datc_status.enable;
+        msg.gripper_initialized = datc_status.initialize;
+        msg.position_ctrl_mode  = datc_status.motor_pos_ctrl;
+        msg.velocity_ctrl_mode  = datc_status.motor_vel_ctrl;
+        msg.current_ctrl_mode   = datc_status.motor_cur_ctrl;
+        msg.grp_opened          = datc_status.grp_open;
+        msg.grp_closed          = datc_status.grp_close;
+        msg.motor_fault         = datc_status.fault;
 
-    publisher_grp_state_->publish(msg);
+        publisher_grp_state_->publish(msg);
+    }
 }
 
 // Main loop
@@ -154,11 +152,13 @@ void DatcCommInterface::run() {
         double dt = (time_current.tv_sec - time_prev.tv_sec) + ((time_current.tv_nsec - time_prev.tv_nsec) * 0.000000001);
 
         if(dt >= period) {
-            rclcpp::spin_some(nh_);
+            if (getConnectionState()) {
+                rclcpp::spin_some(nh_);
 
-            if (mbc_.getConnectionState()) {
-                readDatcData();
-                pubTopic();
+                if (mbc_.getConnectionState()) {
+                    readDatcData();
+                    pubTopic();
+                }
             }
 
             time_prev = time_current;

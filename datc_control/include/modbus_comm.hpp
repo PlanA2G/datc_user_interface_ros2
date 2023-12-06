@@ -39,7 +39,7 @@ public:
         modbusRelease();
     }
 
-    bool modbusInit(const char *port_name, uint16_t slave_address) {
+    bool modbusInit(const char *port_name, uint16_t slave_addr) {
         unique_lock<mutex> lg(mutex_comm_);
 
         mb_ = modbus_new_rtu(port_name, BAUDRATE, PARITY_MODE, DATA_BIT, STOP_BIT);
@@ -53,8 +53,8 @@ public:
             return false;
         }
 
-        if (modbus_set_slave(mb_, slave_address) == -1) {
-            fprintf(stderr, "server_id= %d Invalid slave ID: %s\n", slave_address, modbus_strerror(errno));
+        if (modbus_set_slave(mb_, slave_addr) == -1) {
+            fprintf(stderr, "server_id= %d Invalid slave ID: %s\n", slave_addr, modbus_strerror(errno));
             modbus_free(mb_);
             return false;
         }
@@ -65,6 +65,7 @@ public:
             return false;
         }
 
+        slave_num_ = slave_addr;
         connection_state_ = true;
         COUT("Modbus communication initiated");
 
@@ -72,29 +73,23 @@ public:
     }
 
     void modbusRelease() {
+        slave_num_ = 0;
         connection_state_ = false;
 
         unique_lock<mutex> lg(mutex_comm_);
 
         modbus_close(mb_);
+        modbus_free (mb_);
         COUT("Modbus released");
     }
 
-    bool slaveChange(uint16_t slave_address) {
+    bool slaveChange(uint16_t slave_addr) {
         connection_state_ = false;
 
         unique_lock<mutex> lg(mutex_comm_);
 
-        if (modbus_set_slave(mb_, slave_address) == -1) {
-            fprintf(stderr, "server_id= %d Invalid slave ID: %s\n", slave_address, modbus_strerror(errno));
-            modbus_close(mb_);
-            modbus_free (mb_);
-            connection_state_ = false;
-            return false;
-        }
-
-        if (modbus_connect(mb_) == -1) {
-            fprintf(stderr, "Unable to connect %s\n", modbus_strerror(errno));
+        if (modbus_set_slave(mb_, slave_addr) == -1) {
+            fprintf(stderr, "server_id= %d Invalid slave ID: %s\n", slave_addr, modbus_strerror(errno));
             modbus_close(mb_);
             modbus_free (mb_);
             connection_state_ = false;
@@ -102,7 +97,8 @@ public:
         }
 
         usleep(10000);
-        printf("Modbus slave address changed to %d\n", slave_address);
+        printf("Modbus slave address changed to %d\n", slave_addr);
+        slave_num_ = slave_addr;
         connection_state_ = true;
 
         return true;
@@ -174,11 +170,15 @@ public:
 
     bool getConnectionState() {return connection_state_;}
 
+    uint16_t getSlaveAddr() {return slave_num_;}
+
 private:
     mutex mutex_comm_;
     modbus_t *mb_;
 
     bool connection_state_ = false;
+
+    uint16_t slave_num_ = 0;
 };
 
 #endif // MODBUS_COMM_HPP

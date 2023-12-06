@@ -30,6 +30,10 @@ const uint16_t kTorqueRatioMax = 100;
 const uint16_t kSpeedRatioMin  = 0;
 const uint16_t kSpeedRatioMax  = 100;
 
+const uint16_t kVelMin =  100;
+const uint16_t kVelMax = 1000;
+const uint16_t kCurMax = 1200;
+
 enum class DATC_COMMAND {
     MOTOR_ENABLE           = 1,
     MOTOR_STOP             = 2,
@@ -81,17 +85,17 @@ public:
     bool motorStop();
     bool motorDisable();
 
-    bool motorPosCtrl(int16_t pos_deg, uint16_t duration);
-    bool motorVelCtrl(int16_t velocity, uint16_t duration);
-    bool motorCurCtrl(int16_t current, uint16_t duration);
-
     bool setModbusAddr(uint16_t slave_addr);
 
     bool grpInitialize();
     bool grpOpen();
     bool grpClose();
 
+    // Datc control
     bool setFingerPos(uint16_t finger_pos);
+    bool motorVelCtrl(int16_t vel);
+    bool motorCurCtrl(int16_t cur);
+    bool motorPosCtrl(int16_t pos_deg, uint16_t duration);
 
     bool vacuumGrpOn();
     bool vacuumGrpOff();
@@ -100,9 +104,11 @@ public:
     bool setMotorSpeed (uint16_t speed_ratio);
 
     bool readDatcData();
-    DatcStatus getDatcStatus() {return status_;};
+    DatcStatus getDatcStatus() {return status_;}
     bool getConnectionState() {return mbc_.getConnectionState();}
     bool getModbusRecvErr() {return flag_modbus_recv_err_;}
+
+    uint16_t getSlaveAddr() {return mbc_.getSlaveAddr();}
 
 protected:
     bool checkDurationRange(string error_prefix, uint16_t &duration);

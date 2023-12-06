@@ -46,7 +46,7 @@
 }
 
 QCheckBox::indicator{
-	width:25px; 
+	width:25px;
 	height:25px;
 }
 
@@ -67,7 +67,7 @@ QLineEdit{
       <widget class="QLabel" name="label">
        <property name="font">
         <font>
-         <family>Noto Sans CJK HK</family>
+         <family>Noto Sans KR</family>
          <pointsize>16</pointsize>
          <weight>75</weight>
          <bold>true</bold>
@@ -80,6 +80,13 @@ QLineEdit{
      </item>
      <item>
       <widget class="QFrame" name="frame">
+       <property name="font">
+        <font>
+         <family>Noto Sans KR</family>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
        <property name="frameShape">
         <enum>QFrame::StyledPanel</enum>
        </property>
@@ -209,8 +216,10 @@ QLineEdit{
           </property>
           <property name="font">
            <font>
-            <family>Noto Sans CJK HK</family>
+            <family>Noto Sans KR</family>
             <pointsize>14</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="text">
@@ -231,8 +240,10 @@ QLineEdit{
           </property>
           <property name="font">
            <font>
-            <family>Noto Sans CJK HK</family>
+            <family>Noto Sans KR</family>
             <pointsize>14</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="alignment">
@@ -362,8 +373,10 @@ QLineEdit{
           </property>
           <property name="font">
            <font>
-            <family>Noto Sans CJK HK</family>
+            <family>Noto Sans KR</family>
             <pointsize>14</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="text">
@@ -381,8 +394,10 @@ QLineEdit{
           </property>
           <property name="font">
            <font>
-            <family>Noto Sans CJK HK</family>
+            <family>Noto Sans KR</family>
             <pointsize>14</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="maxLength">
@@ -398,6 +413,13 @@ QLineEdit{
      </item>
      <item>
       <spacer name="verticalSpacer_2">
+       <property name="font">
+        <font>
+         <family>Noto Sans KR</family>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
@@ -418,7 +440,7 @@ QLineEdit{
         <widget class="QPushButton" name="pushButton_tcp_start">
          <property name="font">
           <font>
-           <family>Noto Sans CJK HK</family>
+           <family>Noto Sans KR</family>
            <pointsize>14</pointsize>
            <weight>75</weight>
            <bold>true</bold>
@@ -433,7 +455,7 @@ QLineEdit{
         <widget class="QPushButton" name="pushButton_tcp_stop">
          <property name="font">
           <font>
-           <family>Noto Sans CJK HK</family>
+           <family>Noto Sans KR</family>
            <pointsize>14</pointsize>
            <weight>75</weight>
            <bold>true</bold>
@@ -454,6 +476,13 @@ QLineEdit{
          <height>10</height>
         </size>
        </property>
+       <property name="font">
+        <font>
+         <family>Noto Sans KR</family>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
        <property name="lineWidth">
         <number>1</number>
        </property>
@@ -469,8 +498,10 @@ QLineEdit{
       <widget class="QCheckBox" name="checkBox_tcp_send_status">
        <property name="font">
         <font>
-         <family>Noto Sans CJK HK</family>
+         <family>Noto Sans KR</family>
          <pointsize>14</pointsize>
+         <weight>50</weight>
+         <bold>false</bold>
         </font>
        </property>
        <property name="text">

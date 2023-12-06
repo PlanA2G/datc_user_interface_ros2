@@ -14,6 +14,7 @@
 #include "ui_modbus_form.h"
 #include "ui_datc_control_form.h"
 #include "ui_tcp_form.h"
+#include "ui_advanced_control.h"
 
 class ModbusWidget : public QWidget {
     Q_OBJECT
@@ -46,6 +47,17 @@ public:
     }
 
     Ui::TcpForm ui_;
+};
+
+class AdvancedCtrlWidget : public QWidget {
+    Q_OBJECT
+
+public:
+    AdvancedCtrlWidget(QWidget *parent = nullptr) : QWidget(parent) {
+        ui_.setupUi(this);
+    }
+
+    Ui::AdvancedCtrlForm ui_;
 };
 
 #endif // CUSTOM_WIDGET_HPP

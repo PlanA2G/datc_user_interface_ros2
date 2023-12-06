@@ -288,6 +288,9 @@
     <file>black/zoom-in.svg</file>
     <file>black/zoom-out.svg</file>
   </qresource>
+  <qresource prefix="font">
+    <file>NotoSansKR-VariableFont_wght.ttf</file>
+  </qresource>
   <qresource prefix="logo">
     <file>logo.png</file>
   </qresource>

@@ -41,24 +41,12 @@ bool DatcCtrl::motorDisable() {
     return command(DATC_COMMAND::MOTOR_DISABLE);
 }
 
-bool DatcCtrl::motorPosCtrl(int16_t pos_deg, uint16_t duration) {
-    string error_prefix = "[Motor Position Control]";
-    checkDurationRange(error_prefix, duration);
-    return command(DATC_COMMAND::MOTOR_POSITION_CONTROL, pos_deg, duration);
-}
-bool DatcCtrl::motorVelCtrl(int16_t velocity, uint16_t duration) {
-    string error_prefix = "[Motor Velocity Control]";
-    checkDurationRange(error_prefix, duration);
-    return command(DATC_COMMAND::MOTOR_VELOCITY_CONTROL, velocity, duration);
-}
-bool DatcCtrl::motorCurCtrl(int16_t current, uint16_t duration) {
-    string error_prefix = "[Motor Current Control]";
-    checkDurationRange(error_prefix, duration);
-    return command(DATC_COMMAND::MOTOR_CURRENT_CONTROL, current, duration);
-}
-
 bool DatcCtrl::setModbusAddr(uint16_t slave_addr) {
     // TODO: modbus addr 범위 지정 필요
+    if (slave_addr < 1 || slave_addr >= 100) {
+        COUT("\"setModbusAddr\" function error. Check the input slave address.");
+        return false;
+    }
 
     return command(DATC_COMMAND::CHANGE_MODBUS_ADDRESS, slave_addr);
 }
@@ -87,6 +75,37 @@ bool DatcCtrl::setFingerPos(uint16_t finger_pos) {
     }
 
     return command(DATC_COMMAND::SET_FINGER_POSITION, finger_pos);
+}
+
+bool DatcCtrl::motorVelCtrl(int16_t vel) {
+    string error_prefix = "[Motor Velocity Control]";
+
+    if (abs(vel) < kVelMin) {
+        printf("%s Invalid range of speed ( < %d)", error_prefix.c_str(), kVelMin);
+        vel = (vel >= 0) ? kVelMin : -kVelMin;
+    } else if (abs(vel) > kVelMax) {
+        printf("%s Invalid range of speed ( > %d)", error_prefix.c_str(), kVelMax);
+        vel = (vel >= 0) ? kVelMax : -kVelMax;
+    }
+
+    return command(DATC_COMMAND::MOTOR_VELOCITY_CONTROL, vel, 500); // duration no longer works.
+}
+
+bool DatcCtrl::motorCurCtrl(int16_t cur) {
+    string error_prefix = "[Motor Current Control]";
+
+    if (abs(cur) > kCurMax) {
+        printf("%s Invalid range of current ( > %d)", error_prefix.c_str(), kCurMax);
+        cur = (cur >= 0) ? kCurMax : -kCurMax;
+    }
+
+    return command(DATC_COMMAND::MOTOR_CURRENT_CONTROL, cur, 500); // duration no longer works.
+}
+
+bool DatcCtrl::motorPosCtrl(int16_t pos_deg, uint16_t duration) {
+    string error_prefix = "[Motor Position Control]";
+    checkDurationRange(error_prefix, duration);
+    return command(DATC_COMMAND::MOTOR_POSITION_CONTROL, pos_deg, duration);
 }
 
 bool DatcCtrl::vacuumGrpOn() {
@@ -148,9 +167,9 @@ bool DatcCtrl::readDatcData() {
     if (mbc_.recvData(reg_addr, reg_num, reg)) {
         uint16_t status    = reg[0];
         status_.states     = status;
-        status_.motor_pos  = reg[1];
-        status_.motor_cur  = reg[2];
-        status_.motor_vel  = reg[3];
+        status_.motor_pos  = (int16_t) reg[1];
+        status_.motor_cur  = (int16_t) reg[2];
+        status_.motor_vel  = (int16_t) reg[3];
         status_.finger_pos = reg[4];
         status_.voltage    = reg[7];
 

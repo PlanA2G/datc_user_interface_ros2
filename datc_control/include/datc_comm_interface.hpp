@@ -63,7 +63,7 @@ private:
     rclcpp::Service<Void>::SharedPtr srv_vacuum_grp_on_;
     rclcpp::Service<Void>::SharedPtr srv_vacuum_grp_off_;
 
-    rclcpp::Service<PosVelCurCtrl>::SharedPtr srv_motor_pos_ctrl_;
+    // rclcpp::Service<PosVelCurCtrl>::SharedPtr srv_motor_pos_ctrl_;
     rclcpp::Service<PosVelCurCtrl>::SharedPtr srv_motor_vel_ctrl_;
     rclcpp::Service<PosVelCurCtrl>::SharedPtr srv_motor_cur_ctrl_;
 
